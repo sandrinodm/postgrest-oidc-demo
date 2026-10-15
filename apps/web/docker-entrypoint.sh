@@ -9,6 +9,12 @@ if [ -z "${POSTGREST_BASE_URI:-}" ]; then
   exit 1
 fi
 case "$POSTGREST_BASE_URI" in
+  http://*@* | https://*@*)
+    # Credentials in the URI can't be used (fetch rejects them) and would end up in logs and on the page.
+    echo "error: POSTGREST_BASE_URI must not contain a username or password; PostgREST authenticates" >&2
+    echo "       each request with the user's JWT." >&2
+    exit 1
+    ;;
   http://* | https://*) ;;
   *)
     echo "error: POSTGREST_BASE_URI must start with http:// or https:// (got '$POSTGREST_BASE_URI')" >&2

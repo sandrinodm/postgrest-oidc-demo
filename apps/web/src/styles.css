@@ -785,3 +785,53 @@ tr.others td:first-child {
 .proxy-note {
   margin: 12px 0 0;
 }
+
+/* Connection bar: which PostgREST this page talks to */
+
+.connection-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 0 0 14px;
+  padding: 9px 14px;
+  border: 1px solid color-mix(in srgb, var(--ok) 35%, var(--line));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--ok) 7%, var(--panel));
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+}
+.connection-bar.bad {
+  border-color: color-mix(in srgb, var(--err) 40%, var(--line));
+  background: color-mix(in srgb, var(--err) 7%, var(--panel));
+}
+.connection-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.connection-state::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+.connection-bar.bad .connection-state::before {
+  background: var(--err);
+}
+.connection-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+.connection-url {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}

@@ -1,4 +1,4 @@
-import { getConfig } from './config.server';
+import { getConfig, withoutPassword } from './config.server';
 import { errorMessage } from './errors';
 import type { ApiCall, Json } from './types';
 
@@ -120,7 +120,7 @@ export async function pgrst<T = Json>(req: PgrstRequest): Promise<PgrstResponse<
     at: new Date().toISOString(),
     label: req.label,
     method,
-    url,
+    url: withoutPassword(url),
     requestHeaders: {
       ...headers,
       ...(req.token ? { Authorization: redactBearer(req.token) } : {}),
@@ -174,7 +174,9 @@ export async function pgrst<T = Json>(req: PgrstRequest): Promise<PgrstResponse<
   } catch (err) {
     call.durationMs = Math.round(performance.now() - started);
     const cause = err instanceof Error && err.cause instanceof Error ? `: ${err.cause.message}` : '';
-    call.error = `${errorMessage(err)}${cause}`;
+    // Node's fetch error quotes the full URL; never echo a password from it.
+    const base = getConfig().postgrestUrl;
+    call.error = `${errorMessage(err)}${cause}`.split(base).join(withoutPassword(base));
     return { ok: false, data: null as T, call };
   }
 }
@@ -188,7 +190,7 @@ export async function pgrst<T = Json>(req: PgrstRequest): Promise<PgrstResponse<
  */
 export function describeError(res: PgrstResponse<unknown>): string {
   if (res.call.error) {
-    return `Could not reach PostgREST at ${getConfig().postgrestUrl} (${res.call.error})`;
+    return `Could not reach PostgREST at ${withoutPassword(getConfig().postgrestUrl)} (${res.call.error})`;
   }
   const body = res.data as { message?: string; code?: string; hint?: string | null } | null;
   if (body && typeof body === 'object' && body.message) {

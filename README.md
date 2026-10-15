@@ -63,7 +63,7 @@ Other commands:
 
 ## Docker image
 
-The [`Dockerfile`](Dockerfile) in the root builds the app into a small production image (Node 24, runs as a non-root user, listens on port 3000). It needs one setting, `POSTGREST_BASE_URI`, the base URI of your PostgREST API; without it the container stops with an error.
+The [`Dockerfile`](Dockerfile) in the root builds the app into a small production image (Node 24, runs as a non-root user, listens on port 3000). It needs one setting, `POSTGREST_BASE_URI`, the base URI of your PostgREST API; without it the container stops with an error. The URI must not contain a username or password (PostgREST authenticates each request with the user's JWT). The app shows it in a bar pinned to the top of the page, with whether the last load reached it, so you always know which PostgREST you're looking at.
 
 ```bash
 docker build -t timeoff-web .

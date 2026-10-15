@@ -2,6 +2,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminHelpPanel } from '#/components/admin-help-panel';
 import { AdminRulesPanel } from '#/components/admin-rules-panel';
+import { ConnectionBar } from '#/components/connection-bar';
 import { ConsolePanel } from '#/components/console-panel';
 import { IdentityPanel } from '#/components/identity-panel';
 import { RequestLog } from '#/components/request-log';
@@ -72,12 +73,14 @@ function Debugger() {
 
   return (
     <div className="app">
+      <ConnectionBar url={state.config.postgrestUrl} reachable={!state.error} />
+
       <header className="topbar">
         <div className="brand">
           <span className="logo">⟁</span>
           <div>
             <h1>PostgREST debugger</h1>
-            <p className="muted small">time-off API · {state.config.postgrestUrl}</p>
+            <p className="muted small">time-off API</p>
           </div>
         </div>
         <div className="modes">

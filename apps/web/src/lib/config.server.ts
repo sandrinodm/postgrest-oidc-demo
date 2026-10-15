@@ -148,12 +148,30 @@ function readConfig(): ServerConfig {
 }
 
 /**
+ * Masks the password of a URI that carries credentials (`https://user:secret@host`) before it is shown on the
+ * page: in the connection bar, error messages and the request log. Other URIs, and ones that don't parse, are
+ * returned unchanged.
+ */
+export function withoutPassword(uri: string): string {
+  try {
+    const url = new URL(uri);
+    if (!url.password) {
+      return uri;
+    }
+    url.password = '***';
+    return url.href.replace(/\/$/, '');
+  } catch {
+    return uri;
+  }
+}
+
+/**
  * Strips the server configuration down to what the UI needs to display; anything secret, notably the
  * OIDC client secret, stays on the server.
  */
 export function toPublicConfig(config: ServerConfig): PublicConfig {
   return {
-    postgrestUrl: config.postgrestUrl,
+    postgrestUrl: withoutPassword(config.postgrestUrl),
     oidc: config.oidc
       ? {
           issuer: config.oidc.issuer,

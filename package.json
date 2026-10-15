@@ -1,0 +1,31 @@
+{
+  "name": "postgrest-timeoff",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp run web#dev",
+    "build": "vp run -r build",
+    "check": "vp check && pnpm run lint:jsdoc && pnpm run typecheck",
+    "check:fix": "vp check --fix && pnpm run lint:jsdoc && pnpm run typecheck",
+    "lint:jsdoc": "jsdoc-lint",
+    "typecheck": "vp run -r typecheck",
+    "ready": "pnpm run check && vp run -r build",
+    "db:setup-postgrest": "bash scripts/setup-postgrest.sh",
+    "db:setup": "bash scripts/setup-database.sh",
+    "infra:up": "docker compose -f infra/docker/compose.yaml --env-file infra/docker/.env up -d --wait",
+    "infra:down": "docker compose -f infra/docker/compose.yaml --env-file infra/docker/.env down",
+    "infra:reset": "docker compose -f infra/docker/compose.yaml --env-file infra/docker/.env down -v",
+    "infra:logs": "docker compose -f infra/docker/compose.yaml --env-file infra/docker/.env logs -f"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "jsdoc-lint": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "packageManager": "pnpm@10.27.0"
+}

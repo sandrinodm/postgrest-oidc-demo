@@ -1,0 +1,23 @@
+packages:
+  - apps/*
+  - packages/*
+
+catalog:
+  '@types/node': ^24
+  jsdoc-lint: ^0.6.0
+  typescript: ^7.0.2
+  vite: npm:@voidzero-dev/vite-plus-core@1.2.0
+  vite-plus: 1.2.0
+
+catalogMode: prefer
+
+onlyBuiltDependencies:
+  - esbuild
+
+overrides:
+  vite@*: npm:@voidzero-dev/vite-plus-core@1.2.0
+  vitest@*: 5.0.4
+
+peerDependencyRules:
+  allowAny:
+    - vite

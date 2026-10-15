@@ -1,0 +1,16 @@
+# Keep the build context small and free of secrets.
+**/node_modules
+**/.output
+**/.nitro
+**/.tanstack
+**/dist
+.git
+.claude
+
+# Never bake environment files (OIDC secrets, passwords) into the image.
+**/.env
+**/.env.*
+!**/.env.example
+
+*.log
+.DS_Store

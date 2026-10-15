@@ -1,0 +1,129 @@
+# Postgres + PostgREST for the time-off API.
+#
+#   pnpm infra:up      (from the repo root; uses infra/docker/.env)
+#
+# By default (.env.example) OIDC points at the local test server `mock-oidc`.
+# Point OIDC_ISSUER (and OIDC_AUDIENCE) at your identity provider instead, or
+# leave it empty and set JWT_SECRET to verify HS256 tokens you sign yourself.
+
+name: timeoff
+
+services:
+  db:
+    image: postgres:18.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: timeoff
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    ports:
+      - ${POSTGRES_PORT:-5432}:5432
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres -d timeoff]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # Runs the same setup scripts as production on every `up`, then exits:
+  # scripts/setup-postgrest.sh (the PostgREST roles) and
+  # scripts/setup-database.sh (tables, RLS, the ADMIN_* rules from .env, and
+  # sample data on an empty database). The latter also tells a running
+  # PostgREST to reload, picking up a new key set from `jwks`.
+  db-setup:
+    image: postgres:18.6-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+      jwks:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://postgres@db:5432/timeoff
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      AUTHENTICATOR_PASSWORD: ${AUTHENTICATOR_PASSWORD:?set AUTHENTICATOR_PASSWORD in .env}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      ADMIN_EMAIL_DOMAINS: ${ADMIN_EMAIL_DOMAINS:-}
+      ADMIN_GROUPS: ${ADMIN_GROUPS:-}
+      ADMIN_GROUPS_CLAIM: ${ADMIN_GROUPS_CLAIM:-$$.groups}
+      ADMIN_CLAIM_RULES: ${ADMIN_CLAIM_RULES:-}
+      ADMIN_REQUIRE_EMAIL_VERIFIED: ${ADMIN_REQUIRE_EMAIL_VERIFIED:-false}
+      LOAD_SAMPLE_DATA: 'true'
+    volumes:
+      - ../../scripts:/repo/scripts:ro
+      - ../../db:/repo/db:ro
+    entrypoint:
+      - bash
+      - -c
+      - /repo/scripts/setup-postgrest.sh --yes && /repo/scripts/setup-database.sh --yes
+    restart: 'no'
+
+  # Writes the JWKS PostgREST verifies tokens with (OIDC keys and/or JWT_SECRET).
+  jwks:
+    image: node:24-alpine
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-}
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_JWKS_URI: ${OIDC_JWKS_URI:-}
+    volumes:
+      - ./jwks/build-jwks.mjs:/build-jwks.mjs:ro
+      - jwt:/jwt
+    command: [node, /build-jwks.mjs]
+    depends_on:
+      mock-oidc:
+        condition: service_started
+        required: false
+    # Lets an issuer running on the host (e.g. a local Keycloak) be reached as
+    # http://host.docker.internal:<port>.
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: 'no'
+
+  postgrest:
+    image: postgrest/postgrest:v16.4
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      db-setup:
+        condition: service_completed_successfully
+      jwks:
+        condition: service_completed_successfully
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${AUTHENTICATOR_PASSWORD}@db:5432/timeoff
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_DB_PRE_REQUEST: timeoff.pre_request
+      PGRST_JWT_SECRET: '@/jwt/jwks.json'
+      PGRST_JWT_SECRET_IS_BASE64: 'false'
+      # Only checked when set. Use your OIDC client id / API audience.
+      PGRST_JWT_AUD: ${OIDC_AUDIENCE:-}
+      PGRST_OPENAPI_SERVER_PROXY_URI: http://localhost:${POSTGREST_PORT:-3000}
+      PGRST_SERVER_HOST: 0.0.0.0
+      PGRST_ADMIN_SERVER_PORT: 3001
+      PGRST_LOG_LEVEL: ${POSTGREST_LOG_LEVEL:-info}
+    ports:
+      - ${POSTGREST_PORT:-3000}:3000
+    volumes:
+      - jwt:/jwt:ro
+    healthcheck:
+      # The image is built from scratch (no shell or curl), so ask PostgREST
+      # itself; its admin server answers /ready.
+      test: [CMD, postgrest, --ready]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # Local OIDC test server. Its login page lets you type any username and
+  # extra claims. Started through COMPOSE_PROFILES=oidc-mock, which is on in
+  # .env.example; remove it from .env when using a real provider.
+  mock-oidc:
+    image: ghcr.io/navikt/mock-oauth2-server:6.0.8
+    profiles: [oidc-mock]
+    restart: unless-stopped
+    ports:
+      - ${MOCK_OIDC_PORT:-8090}:8080
+
+volumes:
+  db-data:
+  jwt:

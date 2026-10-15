@@ -1,0 +1,6 @@
+{
+  "roots": ["."],
+  "excludePaths": ["node_modules", "dist", "coverage", ".output", ".nitro", ".tanstack"],
+  "excludeFiles": ["\\.d\\.[cm]?ts$", "\\.test\\.[^.]+$", "routeTree\\.gen\\.ts$"],
+  "includeExtensions": [".ts", ".tsx", ".js", ".mjs"]
+}
